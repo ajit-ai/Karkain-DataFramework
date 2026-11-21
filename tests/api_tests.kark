@@ -1,0 +1,59 @@
+// Native tests for Karkain-DataFramework.
+
+func sample_pipeline() {
+    let p = add_stage(new_pipeline("basic"), "increment")
+    return add_stage(p, "double")
+}
+
+func sample_dataset() {
+    let d = add_value(new_dataset(), 1)
+    d = add_value(d, 2)
+    return add_value(d, 3)
+}
+
+func test_new_pipeline() {
+    assert_eq(pipeline_name(sample_pipeline()), "basic")
+    assert_eq(stage_count(new_pipeline("x")), 0)
+}
+
+func test_add_stage() {
+    let p = sample_pipeline()
+    assert_eq(stage_count(p), 2)
+    assert_eq(stage_at(p, 0), "increment")
+    assert_eq(stage_at(p, 1), "double")
+    assert_eq(stage_at(p, 9), "")
+}
+
+func test_apply_stage() {
+    assert_eq(apply_stage("double", 3), 6)
+    assert_eq(apply_stage("increment", 3), 4)
+    assert_eq(apply_stage("square", 3), 9)
+    assert_eq(apply_stage("unknown", 3), 3)
+}
+
+func test_transform_value() {
+    assert_eq(transform_value(sample_pipeline(), 2), 6)
+    assert_eq(transform_value(new_pipeline("empty"), 2), 2)
+}
+
+func test_new_dataset() {
+    assert_eq(len(new_dataset()), 0)
+    assert_eq(len(sample_dataset()), 3)
+}
+
+func test_run_pipeline() {
+    let out = run_pipeline(sample_pipeline(), sample_dataset())
+    assert_eq(len(out), 3)
+    assert_eq(out[0], 4)
+    assert_eq(out[1], 6)
+    assert_eq(out[2], 8)
+}
+
+func test_run_empty_dataset() {
+    let out = run_pipeline(sample_pipeline(), new_dataset())
+    assert_eq(len(out), 0)
+}
+
+func test_describe_pipeline() {
+    assert_eq(describe_pipeline(sample_pipeline()), "basic:stages=2")
+}

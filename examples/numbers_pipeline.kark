@@ -1,0 +1,15 @@
+// Karkain-DataFramework runnable example: transform a numeric dataset.
+import dataframework
+
+func main() {
+    let p = new_pipeline("numbers")
+    p = add_stage(p, "double")
+    p = add_stage(p, "increment")
+
+    let d = add_value(add_value(add_value(new_dataset(), 1), 2), 10)
+    let out = run_pipeline(p, d)
+
+    println(describe_pipeline(p))
+    println("first=" + str(out[0]))
+    println("last=" + str(out[2]))
+}

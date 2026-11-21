@@ -1,0 +1,92 @@
+// Karkain-DataFramework - data processing pipeline primitives.
+// Karkain Language v1.2.0 verified baseline (tag v1.2.0,
+// commit 77d70693e1e3134dac312a303bffafa7d50fa988).
+//
+// Scope boundary: this framework models named transformation stages over
+// numeric datasets in portable Karkain. It does not read files, open
+// databases or spawn parallel workers.
+//
+// Pipeline representation: [name, stage, stage, ...].
+// Dataset representation: an array of numeric values.
+
+// new_pipeline creates an empty named pipeline.
+public func new_pipeline(name) {
+    let p = []
+    p = push(p, name)
+    return p
+}
+
+// pipeline_name returns the pipeline name.
+public func pipeline_name(pipeline) {
+    return pipeline[0]
+}
+
+// add_stage appends a named transformation stage.
+public func add_stage(pipeline, stage) {
+    return push(pipeline, stage)
+}
+
+// stage_count returns the number of stages.
+public func stage_count(pipeline) {
+    return len(pipeline) - 1
+}
+
+// stage_at returns the nth stage name or "".
+public func stage_at(pipeline, n) {
+    if n < stage_count(pipeline) {
+        return pipeline[1 + n]
+    }
+    return ""
+}
+
+// new_dataset returns an empty dataset.
+public func new_dataset() {
+    return []
+}
+
+// add_value appends a value to a dataset.
+public func add_value(dataset, value) {
+    return push(dataset, value)
+}
+
+// apply_stage applies a supported named operation to a value. Unknown
+// stage names leave the value unchanged (documented, predictable behavior).
+public func apply_stage(stage, value) {
+    if stage == "double" {
+        return value * 2
+    }
+    if stage == "increment" {
+        return value + 1
+    }
+    if stage == "square" {
+        return value * value
+    }
+    return value
+}
+
+// transform_value applies every stage in order to one value.
+public func transform_value(pipeline, value) {
+    let out = value
+    let i = 0
+    while (i < stage_count(pipeline)) {
+        out = apply_stage(stage_at(pipeline, i), out)
+        i = i + 1
+    }
+    return out
+}
+
+// run_pipeline returns a new dataset with all stages applied to each value.
+public func run_pipeline(pipeline, dataset) {
+    let out = []
+    let i = 0
+    while (i < len(dataset)) {
+        out = push(out, transform_value(pipeline, dataset[i]))
+        i = i + 1
+    }
+    return out
+}
+
+// describe_pipeline builds a one-line pipeline diagnostic.
+public func describe_pipeline(pipeline) {
+    return pipeline_name(pipeline) + ":stages=" + str(stage_count(pipeline))
+}
