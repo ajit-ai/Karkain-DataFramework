@@ -57,3 +57,76 @@ func test_run_empty_dataset() {
 func test_describe_pipeline() {
     assert_eq(describe_pipeline(sample_pipeline()), "basic:stages=2")
 }
+
+// --- Phase 2 regression ---
+
+func test_phase1_regression() {
+    let p = sample_pipeline()
+    assert_eq(stage_count(p), 2)
+    let out = run_pipeline(p, sample_dataset())
+    assert_eq(len(out), 3)
+    assert_eq(out[0], 4)
+}
+
+// --- Phase 2 additions ---
+
+func test_schema() {
+    let s = add_field(add_field(new_schema("user"), "id", "int", true), "note", "string", false)
+    assert_eq(field_kind(s, "id"), "int")
+    assert_eq(field_kind(s, "none"), "")
+    let record = ["id", 1]
+    assert_eq(validate_record(s, record), 0)
+    assert_eq(validate_record(s, []), 1)
+}
+
+func test_source_sink_contracts() {
+    let src = new_source("test", "batch,stream")
+    assert(source_supports(src, "batch"))
+    assert(source_supports(src, "file") == false)
+    let sink = new_sink("test", "write")
+    assert(sink_supports(sink, "write"))
+    assert(sink_supports(sink, "durable") == false)
+}
+
+func test_quality_rules() {
+    let rules = add_quality_rule(new_quality_rules(), "name", 3)
+    assert_eq(check_quality(rules, ["abc", "ab"]), 1)
+    assert_eq(check_quality(rules, ["abc"]), 0)
+}
+
+func test_map_filter_reduce() {
+    let values = [1, 2, 3, 4]
+    let mapped = map_values(values, 2)
+    assert_eq(mapped[0], 2)
+    assert_eq(mapped[3], 8)
+    let filtered = filter_values(values, 3)
+    assert_eq(len(filtered), 2)
+    assert_eq(filtered[0], 3)
+    assert_eq(reduce_sum(values), 10)
+}
+
+func test_partition_and_sort() {
+    assert_eq(partition_count([1, 2, 3, 4, 5], 2), 3)
+    assert_eq(partition_count([], 2), 0)
+    assert_eq(partition_count([1], 0), 0)
+    let sorted = sort_ascending([3, 1, 2])
+    assert_eq(sorted[0], 1)
+    assert_eq(sorted[1], 2)
+    assert_eq(sorted[2], 3)
+}
+
+func test_execution_and_lineage() {
+    let exec = set_execution_state(new_execution(), "running")
+    assert_eq(execution_state(exec), "running")
+    assert_eq(execution_state(new_execution()), "created")
+    let l = add_lineage_step(add_lineage_step(new_lineage("run1"), "extract"), "transform")
+    assert_eq(lineage_depth(l), 2)
+}
+
+func test_backpressure_and_contracts() {
+    let p = new_backpressure(10)
+    assert(can_process(p, 10))
+    assert(can_process(p, 11) == false)
+    assert_eq(ai_contract(), "ai.dataset(dataset,features)")
+    assert_eq(scientific_contract(), "scientific.observations(dataset)")
+}

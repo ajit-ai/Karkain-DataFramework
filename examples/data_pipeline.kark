@@ -1,0 +1,17 @@
+// Karkain-DataFramework Phase 2 example: schema, quality and processing.
+import dataframework
+
+func main() {
+    let schema = add_field(new_schema("user"), "id", "int", true)
+    println("missing=" + str(validate_record(schema, [])))
+
+    let data = add_value(add_value(add_value(new_dataset(), 1), 2), 3)
+    let doubled = map_values(data, 2)
+    let kept = filter_values(doubled, 4)
+    println("sum=" + str(reduce_sum(kept)))
+
+    let sorted = sort_ascending([3, 1, 2])
+    println("first=" + str(sorted[0]))
+    println("partitions=" + str(partition_count(data, 2)))
+    println("ai=" + ai_contract())
+}

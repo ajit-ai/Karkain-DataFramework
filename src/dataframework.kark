@@ -90,3 +90,214 @@ public func run_pipeline(pipeline, dataset) {
 public func describe_pipeline(pipeline) {
     return pipeline_name(pipeline) + ":stages=" + str(stage_count(pipeline))
 }
+
+// ---------------------------------------------------------------------------
+// Phase 2 additions. Phase 1 pipeline API is unchanged. All data processing
+// below is in-memory and executable; external source/sink providers are
+// interfaces only.
+
+// new_schema creates a named data schema.
+public func new_schema(name) {
+    let s = []
+    s = push(s, name)
+    return s
+}
+
+// add_field declares a schema field with kind and required flag.
+public func add_field(validation, field, kind, required) {
+    let out = validation
+    out = push(out, field)
+    out = push(out, kind)
+    out = push(out, required)
+    return out
+}
+
+// field_kind returns a declared field kind or "".
+public func field_kind(schema, field) {
+    let i = 1
+    while (i < len(schema)) {
+        if schema[i] == field { return schema[i + 1] }
+        i = i + 3
+    }
+    return ""
+}
+
+// validate_record counts missing required fields.
+public func validate_record(schema, record) {
+    let missing = 0
+    let i = 1
+    while (i < len(schema)) {
+        if schema[i + 2] {
+            let found = false
+            let j = 0
+            while (j < len(record)) {
+                if record[j] == schema[i] { found = true }
+                j = j + 1
+            }
+            if found == false { missing = missing + 1 }
+        }
+        i = i + 3
+    }
+    return missing
+}
+
+// new_source declares a data source adapter with capabilities.
+public func new_source(name, capabilities) {
+    let s = []
+    s = push(s, name)
+    s = push(s, capabilities)
+    return s
+}
+
+// source_supports reports whether a source capability is advertised.
+public func source_supports(source, capability) { return contains(source[1], capability) }
+
+// new_sink declares a data sink adapter with capabilities.
+public func new_sink(name, capabilities) {
+    let s = []
+    s = push(s, name)
+    s = push(s, capabilities)
+    return s
+}
+
+// sink_supports reports whether a sink capability is advertised.
+public func sink_supports(sink, capability) { return contains(sink[1], capability) }
+
+// new_quality_rules creates a quality rule store.
+public func new_quality_rules() {
+    return []
+}
+
+// add_quality_rule adds a minimum-length rule for a field.
+public func add_quality_rule(rules, field, minimum) {
+    let out = rules
+    out = push(out, field)
+    out = push(out, minimum)
+    return out
+}
+
+// check_quality counts values shorter than a rule minimum.
+public func check_quality(rules, values) {
+    let n = 0
+    let i = 0
+    while (i < len(rules)) {
+        let j = 0
+        while (j < len(values)) {
+            if len(str(values[j])) < rules[i + 1] { n = n + 1 }
+            j = j + 1
+        }
+        i = i + 2
+    }
+    return n
+}
+
+// map_values multiplies every value by a factor.
+public func map_values(values, factor) {
+    let out = []
+    let i = 0
+    while (i < len(values)) {
+        out = push(out, values[i] * factor)
+        i = i + 1
+    }
+    return out
+}
+
+// filter_values keeps values greater than or equal to a threshold.
+public func filter_values(values, threshold) {
+    let out = []
+    let i = 0
+    while (i < len(values)) {
+        if values[i] >= threshold { out = push(out, values[i]) }
+        i = i + 1
+    }
+    return out
+}
+
+// reduce_sum returns the sum of a dataset.
+public func reduce_sum(values) {
+    let total = 0
+    let i = 0
+    while (i < len(values)) {
+        total = total + values[i]
+        i = i + 1
+    }
+    return total
+}
+
+// partition_count returns the number of partitions of a given size.
+public func partition_count(values, size) {
+    if size < 1 { return 0 }
+    let n = len(values) / size
+    if len(values) % size > 0 { n = n + 1 }
+    return n
+}
+
+// sort_ascending returns a new array of values in ascending order.
+public func sort_ascending(values) {
+    let out = []
+    let k = 0
+    while (k < len(values)) {
+        out = push(out, values[k])
+        k = k + 1
+    }
+    let i = 0
+    while (i < len(out)) {
+        let j = 0
+        while (j < len(out) - 1) {
+            if out[j] > out[j + 1] {
+                let tmp = out[j]
+                out[j] = out[j + 1]
+                out[j + 1] = tmp
+            }
+            j = j + 1
+        }
+        i = i + 1
+    }
+    return out
+}
+
+// new_execution creates a pipeline execution model.
+public func new_execution() {
+    let e = []
+    e = push(e, "created")
+    return e
+}
+
+// set_execution_state records an execution state.
+public func set_execution_state(execution, state) {
+    let out = []
+    out = push(out, state)
+    return out
+}
+
+// execution_state returns an execution state.
+public func execution_state(execution) { return execution[0] }
+
+// new_lineage creates transformation lineage metadata.
+public func new_lineage(id) {
+    let l = []
+    l = push(l, id)
+    return l
+}
+
+// add_lineage_step records a transformation stage.
+public func add_lineage_step(lineage, stage) { return push(lineage, stage) }
+
+// lineage_depth returns the number of lineage steps.
+public func lineage_depth(lineage) { return len(lineage) - 1 }
+
+// new_backpressure creates a bounded processing policy.
+public func new_backpressure(max_items) {
+    let p = []
+    p = push(p, max_items)
+    return p
+}
+
+// can_process reports whether a batch fits the policy.
+public func can_process(policy, count) { return count <= policy[0] }
+
+// ai_contract documents DataFramework to AI integration.
+public func ai_contract() { return "ai.dataset(dataset,features)" }
+
+// scientific_contract documents DataFramework to Scientific integration.
+public func scientific_contract() { return "scientific.observations(dataset)" }
